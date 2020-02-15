@@ -12,11 +12,11 @@ class Stratum:
         self.log = log
         self.ssl_context = ssl_context
         self.template = {"error": null, "id": 0, "result": True}
-        main()
+        self.main()
 
     @method
     class mining:
-        async def authorize(username, password):
+        async def authorize(self, username, password):
             return_json = self.template
             return_json.id = 2
             return json.dumps(json.dumps(return_json))

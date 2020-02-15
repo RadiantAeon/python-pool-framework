@@ -12,7 +12,7 @@ class poolFramework:
         self.config = json.loads(open("config.json","r").read())
         if self.config['ssl_keyfile_path'] != "" and self['config.ssl_certfile_path'] != "":
             loadSSL()
-        startup()
+        self.startup()
     def startup(self):
 
         pool_configs = []
