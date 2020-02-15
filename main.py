@@ -16,7 +16,7 @@ class poolFramework:
     def startup(self):
 
         pool_configs = []
-        directory = os.fsencode(self.config.config_dirs)
+        directory = os.fsencode(self.config.coin_config_dir)
 
         # load configs in config directory
         for filename in os.listdir(directory):
