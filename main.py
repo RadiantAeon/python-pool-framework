@@ -21,8 +21,12 @@ class poolFramework:
         # load configs in config directory
         for filename in os.listdir(directory):
             filename = os.fsdecode(filename)
-            if filename.endswith(".json"): 
-                curr_config = json.loads(open(filename,"r").read())
+            if filename.endswith(".json"):
+                # checks if the path in config contains a / on the end or not
+                if self.config['coin_config_dir'].endswith("/"):
+                    curr_config = json.loads(open(self.config['coin_config_dir'] + filename,"r").read())
+                else:
+                    curr_config = json.loads(open(self.config['coin_config_dir'] + "/" + filename,"r").read())
                 # only load the config if the file name is the same as the coin name
                 if curr_config.coin_name == filename.replace("json", ""):
                     pool_configs.append(curr_config)
