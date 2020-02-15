@@ -10,13 +10,13 @@ class poolFramework:
         logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
         self.log = logging.getLogger(__name__)
         self.config = json.loads(open("config.json","r").read())
-        if self.config.ssl_keyfile_path != "" and self.config.ssl_certfile_path != "":
+        if self.config['ssl_keyfile_path'] != "" and self['config.ssl_certfile_path'] != "":
             loadSSL()
         startup()
     def startup(self):
 
         pool_configs = []
-        directory = os.fsencode(self.config.coin_config_dir)
+        directory = os.fsencode(self.config['coin_config_dir'])
 
         # load configs in config directory
         for filename in os.listdir(directory):
@@ -31,7 +31,7 @@ class poolFramework:
 
         # check for duplicate ports
 
-        port = []
+        ports = []
         for config in pool_configs:
             if config.port in ports:
                 self.log.error(str(config.coin) + " has the same port configured as another coin!")
@@ -48,6 +48,6 @@ class poolFramework:
             ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
         )
         self.ssl_context.set_ciphers("ECDHE+AESGCM")
-        self.ssl_context.load_cert_chain(certfile=self.config.ssl_cert_path, keyfile=self.config.ssl_keyfile_path)
+        self.ssl_context.load_cert_chain(certfile=self['config.ssl_cert_path'], keyfile=self['config.ssl_keyfile_path'])
         self.ssl_context.set_alpn_protocols(["h2"])
 poolFramework()
