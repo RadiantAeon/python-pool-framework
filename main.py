@@ -28,7 +28,7 @@ class poolFramework:
                 else:
                     curr_config = json.loads(open(self.config['coin_config_dir'] + "/" + filename,"r").read())
                 # only load the config if the file name is the same as the coin name
-                if curr_config['coin_name'] == filename.replace("json", ""):
+                if curr_config['coin'] == filename.replace("json", ""):
                     pool_configs.append(curr_config)
             else:
                 continue

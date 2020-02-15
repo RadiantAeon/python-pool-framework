@@ -22,7 +22,7 @@ class Stratum:
             return json.dumps(json.dumps(return_json))
 
     async def main(self):
-        rep = await aiozmq.create_zmq_stream(zmq.REP, bind="tcp://" + str(self.main_config.ip + ":" + str(self.config.port)))
+        rep = await aiozmq.create_zmq_stream(zmq.REP, bind="tcp://" + str(self.main_config['ip'] + ":" + str(self.config['port'])))
         while True:
             request = await rep.read()
             response = await dispatch(request[0].decode())
