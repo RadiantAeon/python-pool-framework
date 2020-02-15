@@ -8,7 +8,7 @@ import ssl
 class poolFramework:
     def __init__(self):
         logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
-        log = logging.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         self.config = json.loads(open("config.json","r").read())
         if self.config.ssl_keyfile_path != "" and self.config.ssl_certfile_path != "":
             loadSSL()
