@@ -64,7 +64,7 @@ class poolFramework:
         ssl_context.load_cert_chain(certfile=self['config.ssl_cert_path'], keyfile=self['config.ssl_keyfile_path'])
         ssl_context.set_alpn_protocols(["h2"])
     
-    async def main(self):
+    async def main(self, config):
         #rep = await aiozmq.create_zmq_stream(zmq.REP, bind="tcp://" + str(self.main_config['ip'] + ":" + str(self.config['port'])))
         #while True:
         #    request = await rep.read()
