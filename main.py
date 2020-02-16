@@ -66,7 +66,9 @@ class Stratum:
         self.log = log
         self.ssl_context = ssl_context
         self.template = {"error": null, "id": 0, "result": True}
-        self.main()
+        if __name__ == "__main__":
+            asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+            asyncio.get_event_loop().run_until_complete(self.main())
 
     @method
     class mining:
@@ -81,9 +83,5 @@ class Stratum:
             request = await rep.read()
             response = await dispatch(request[0].decode())
             rep.write((str(response).encode(),))
-
-    if __name__ == "__main__":
-        asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-        asyncio.get_event_loop().run_until_complete(main())
 
 poolFramework()
