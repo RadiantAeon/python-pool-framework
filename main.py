@@ -52,7 +52,7 @@ class poolFramework:
         for config in pool_configs:
             self.log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, self.log, self.ssl_context)
-            asyncio.run(self.main(self))
+            asyncio.run(self.main(config))
 
     def loadSSL(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -70,10 +70,11 @@ class poolFramework:
         #    response = await dispatch(request[0].decode())
         #    rep.write((str(response).encode(),))
         loop = asyncio.get_running_loop()
-
+        
+        # pro tip - the config passed to it is the coin specific one and the self.config is the global config
         server = await loop.create_server(
             lambda: EchoServerProtocol(),
-            self.main_config['ip'], self.config['port'])
+            self.config['ip'], config['port'])
 
         async with server:
             await server.serve_forever()
