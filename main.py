@@ -53,7 +53,7 @@ class poolFramework:
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
 
-                    self.coin_modules[curr_config['coin']] = module.load(self, curr_config['coin'])
+                    self.coin_modules[curr_config['coin']] = module
 
                     log.info("Added coin module '%s' to modules list", curr_config['coin'])
             else:
@@ -93,7 +93,7 @@ class poolFramework:
         
         # pro tip - the config passed to it is the coin specific one and the self.config is the global config
         server = await loop.create_server(
-            lambda: self.coin_modules[config['coin']].StratumServerProtocol(),
+            lambda: self.coin_modules[config['coin']](),
             self.config['ip'], config['port'])
 
         async with server:
