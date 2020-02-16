@@ -68,7 +68,7 @@ class Stratum:
         self.template = {"error": null, "id": 0, "result": True}
         if __name__ == "__main__":
             asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-            asyncio.get_event_loop().run_until_complete(self.main())
+            asyncio.get_event_loop().run_until_complete(self.main(self))
 
     @method
     class mining:
