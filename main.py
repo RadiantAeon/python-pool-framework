@@ -19,10 +19,12 @@ class poolFramework:
            self.ssl_context = loadSSL()
         else:
            self.ssl_context = None
+        self.coin_modules = {}
+        self.coin_configs = []
         self.startup()
+    
     def startup(self):
 
-        pool_configs = []
         directory = os.fsencode(self.config['coin_config_dir'])
 
         # load configs in config directory
@@ -34,23 +36,33 @@ class poolFramework:
                     curr_config = json.loads(open(self.config['coin_config_dir'] + filename,"r").read())
                 else:
                     curr_config = json.loads(open(self.config['coin_config_dir'] + "/" + filename,"r").read())
-                # only load the config if the file name is the same as the coin name
-                if curr_config['coin'] == filename.replace(".json", ""):
-                    pool_configs.append(curr_config)
+                
+                # only load the config if the file name is the same as the coin name and the script file exsists
+                if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_scripts_dir'] + curr_config['coin'] + ".py"):
+                    self.pool_configs[curr_config['coin']](curr_config)
+                    spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_scripts_dir'] + curr_config['coin'] + ".py")
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+
+                    self.coin_modules[name] = module.load(self, curr_config['coin'])
+
+                    log.info("Added coin module '%s' to modules list", curr_config['coin'])
+                elif curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_scripts_dir'] + "/" + curr_config['coin'] + ".py"):
+                    self.pool_configs.append(curr_config)
             else:
                 continue
 
         # check for duplicate ports
 
         ports = []
-        for config in pool_configs:
+        for config in self.pool_configs:
             if config['port'] in ports:
                 log.error(str(config['coin']) + " has the same port configured as another coin!")
                 quit
             else:
                 ports.append(config['port'])
 
-        for config in pool_configs:
+        for config in self.pool_configs:
             log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, log, self.ssl_context)
             asyncio.run(self.main(config))
@@ -74,7 +86,7 @@ class poolFramework:
         
         # pro tip - the config passed to it is the coin specific one and the self.config is the global config
         server = await loop.create_server(
-            lambda: EchoServerProtocol(),
+            lambda: self.coin_modules[config['coin']],
             self.config['ip'], config['port'])
 
         async with server:
@@ -121,7 +133,13 @@ class StratumServerProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         message = data.decode()
-        print('Data received: {!r}'.format(message))
+        log.debug('Data received: {!r}'.format(message))
+        
+        try:
+            json.loads(message)
+        except:
+            log.info("Invalid data recieved - " + str(message))
+        
 
         print('Send: {!r}'.format(message))
         self.transport.write(data)
