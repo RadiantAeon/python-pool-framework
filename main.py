@@ -44,7 +44,7 @@ class poolFramework:
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
 
-                    self.coin_modules[curr_config['coin']] = module.load(self, curr_config['coin'])
+                    self.coin_modules[curr_config['coin']] = module
 
                     log.info("Added coin module '%s' to modules list", curr_config['coin'])
                 elif curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_modules_dir'] + "/" + curr_config['coin'] + ".py"):
