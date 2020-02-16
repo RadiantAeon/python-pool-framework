@@ -52,7 +52,7 @@ class poolFramework:
         for config in pool_configs:
             self.log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, self.log, self.ssl_context)
-            asyncio.run(main(self))
+            asyncio.run(self.main(self))
 
     def loadSSL(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
