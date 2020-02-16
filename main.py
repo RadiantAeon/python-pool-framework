@@ -38,18 +38,18 @@ class poolFramework:
                     curr_config = json.loads(open(self.config['coin_config_dir'] + "/" + filename,"r").read())
                 
                 # only load the config if the file name is the same as the coin name and the script file exsists
-                if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_scripts_dir'] + curr_config['coin'] + ".py"):
+                if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_modules_dir'] + curr_config['coin'] + ".py"):
                     self.coin_configs.append(curr_config)
-                    spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_scripts_dir'] + curr_config['coin'] + ".py")
+                    spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_modules_dir'] + curr_config['coin'] + ".py")
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
 
                     self.coin_modules[curr_config['coin']] = module.load(self, curr_config['coin'])
 
                     log.info("Added coin module '%s' to modules list", curr_config['coin'])
-                elif curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_scripts_dir'] + "/" + curr_config['coin'] + ".py"):
+                elif curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_modules_dir'] + "/" + curr_config['coin'] + ".py"):
                     self.coin_configs.append(curr_config)
-                    spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_scripts_dir'] + curr_config['coin'] + ".py")
+                    spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_modules_dir'] + curr_config['coin'] + ".py")
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
 

@@ -3,5 +3,5 @@
     "ssl_keyfile_path": "",
     "ssl_certfile_path": "",
     "coin_config_dir": "coin_configs/",
-    "coin_scripts_dir": "coin_scripts_dir/"
+    "coin_modules_dir": "coin_modules/"
 }
