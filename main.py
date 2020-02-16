@@ -39,30 +39,37 @@ class poolFramework:
                 
                 # only load the config if the file name is the same as the coin name and the script file exsists
                 if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_scripts_dir'] + curr_config['coin'] + ".py"):
-                    self.pool_configs[curr_config['coin']](curr_config)
+                    self.coin_configs.append(curr_config)
                     spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_scripts_dir'] + curr_config['coin'] + ".py")
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
 
-                    self.coin_modules[name] = module.load(self, curr_config['coin'])
+                    self.coin_modules[curr_config['coin']] = module.load(self, curr_config['coin'])
 
                     log.info("Added coin module '%s' to modules list", curr_config['coin'])
                 elif curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(self.config['coin_scripts_dir'] + "/" + curr_config['coin'] + ".py"):
-                    self.pool_configs.append(curr_config)
+                    self.coin_configs.append(curr_config)
+                    spec = importlib.util.spec_from_file_location(curr_config['coin'], self.config['coin_scripts_dir'] + curr_config['coin'] + ".py")
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+
+                    self.coin_modules[curr_config['coin']] = module.load(self, curr_config['coin'])
+
+                    log.info("Added coin module '%s' to modules list", curr_config['coin'])
             else:
                 continue
 
         # check for duplicate ports
 
         ports = []
-        for config in self.pool_configs:
+        for config in self.coin_configs:
             if config['port'] in ports:
                 log.error(str(config['coin']) + " has the same port configured as another coin!")
                 quit
             else:
                 ports.append(config['port'])
 
-        for config in self.pool_configs:
+        for config in self.coin_configs:
             log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, log, self.ssl_context)
             asyncio.run(self.main(config))
