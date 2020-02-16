@@ -1,0 +1,1 @@
+## NOTE - THIS REQUIRES PYTHON 3.7 or higher because asyncio dumb
