@@ -28,7 +28,7 @@ class StratumServerProtocol(asyncio.Protocol):
         self.log.debug('Close the client socket')
         self.transport.close()
 
-async def main(self, config, global_config):
+async def main(config, global_config):
     loop = asyncio.get_running_loop()
         
     # pro tip - the config passed to it is the coin specific one and the self.config is the global config
