@@ -48,6 +48,7 @@ class poolFramework:
                 ports.append(config.port)
 
         for config in pool_configs:
+            self.log.info("Initialized " + str(config.coin) + " stratum")
             Stratum(self.config, config, self.log, self.ssl_context)
 
     def loadSSL(self):
@@ -66,9 +67,9 @@ class Stratum:
         self.log = log
         self.ssl_context = ssl_context
         self.template = {"error": null, "id": 0, "result": True}
-        if __name__ == "__main__":
-            asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
-            asyncio.get_event_loop().run_until_complete(self.main(self))
+        self.log.info("here 1")
+        asyncio.set_event_loop_policy(aiozmq.ZmqEventLoopPolicy())
+        asyncio.get_event_loop().run_until_complete(self.main(self))
 
     @method
     class mining:
