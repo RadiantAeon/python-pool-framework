@@ -72,7 +72,7 @@ class poolFramework:
         for config in self.coin_configs:
             log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, log, self.ssl_context)
-            asyncio.run(self.main(config))
+            asyncio.run(self.coin_modules[config['coin']].main(config, self.config))
 
     def loadSSL(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -82,22 +82,6 @@ class poolFramework:
         ssl_context.set_ciphers("ECDHE+AESGCM")
         ssl_context.load_cert_chain(certfile=self['config.ssl_cert_path'], keyfile=self['config.ssl_keyfile_path'])
         ssl_context.set_alpn_protocols(["h2"])
-    
-    async def main(self, config):
-        #rep = await aiozmq.create_zmq_stream(zmq.REP, bind="tcp://" + str(self.main_config['ip'] + ":" + str(self.config['port'])))
-        #while True:
-        #    request = await rep.read()
-        #    response = await dispatch(request[0].decode())
-        #    rep.write((str(response).encode(),))
-        loop = asyncio.get_running_loop()
-        
-        # pro tip - the config passed to it is the coin specific one and the self.config is the global config
-        server = await loop.create_server(
-            lambda: self.coin_modules[config['coin']](),
-            self.config['ip'], config['port'])
-
-        async with server:
-            await server.serve_forever()
 
 #class Stratum:
 #    def __init__(self, main_config, config, log, ssl_context):
