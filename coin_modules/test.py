@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 class StratumServerProtocol(asyncio.Protocol):
     def __init__(self):
         logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
