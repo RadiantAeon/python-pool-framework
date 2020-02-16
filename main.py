@@ -9,10 +9,11 @@ import zmq
 from jsonrpcserver import method, async_dispatch as dispatch
 import json
 
+logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
+log = logging.getLogger(__name__)
+
 class poolFramework:
     def __init__(self):
-        logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
-        self.log = logging.getLogger(__name__)
         self.config = json.loads(open("config.json","r").read())
         if self.config['ssl_keyfile_path'] != "" and self['config.ssl_certfile_path'] != "":
            self.ssl_context = loadSSL()
@@ -44,14 +45,14 @@ class poolFramework:
         ports = []
         for config in pool_configs:
             if config['port'] in ports:
-                self.log.error(str(config['coin']) + " has the same port configured as another coin!")
+                log.error(str(config['coin']) + " has the same port configured as another coin!")
                 quit
             else:
                 ports.append(config['port'])
 
         for config in pool_configs:
-            self.log.info("Initialized " + str(config['coin']) + " stratum")
-            #main(self.config, config, self.log, self.ssl_context)
+            log.info("Initialized " + str(config['coin']) + " stratum")
+            #main(self.config, config, log, self.ssl_context)
             asyncio.run(self.main(config))
 
     def loadSSL(self):
@@ -111,4 +112,20 @@ class EchoServerProtocol(asyncio.Protocol):
         print('Close the client socket')
         self.transport.close()
 
+
+class StratumServerProtocol(asyncio.Protocol):
+    def connection_made(self, transport):
+        peername = transport.get_extra_info('peername')
+        log.info('Connection from {}'.format(peername))
+        self.transport = transport
+
+    def data_received(self, data):
+        message = data.decode()
+        print('Data received: {!r}'.format(message))
+
+        print('Send: {!r}'.format(message))
+        self.transport.write(data)
+
+        print('Close the client socket')
+        self.transport.close()
 poolFramework()
