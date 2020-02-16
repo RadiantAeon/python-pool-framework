@@ -18,7 +18,7 @@ class StratumServerProtocol(asyncio.Protocol):
             json.loads(message)
         except:
             self.log.info("Invalid data recieved - " + str(message))
-            self.transport.write("bruh")
+            self.transport.write(b"bruh")
             self.transport.close()
         
         
