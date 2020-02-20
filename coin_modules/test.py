@@ -23,14 +23,35 @@ class TCPServer(asyncio.Protocol):
         self.transport.close()
 
 class stratumHandling():
-    def handleMessage(message):
+    def handleMessage(self, message):
+        # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
+        methods = {
+            "mining.authorize": self.mining.authorize,
+            "mining.capabilities": self.mining.capabilities,
+            "mining.extranonce.subscribe": self.mining.extranonce.subscribe,
+            "mining.get_transactions": self.mining.get_transactions,
+            "mining.submit": self.mining.submit,
+            "mining.subscribe": self.mining.subscribe,
+            "mining.suggest_difficulty": self.mining.suggest_difficulty,
+            "mining.suggest_target": self.suggest_target
+        }
+        
+        # generic stratum protocol response
+        template = {"error": None, "id": 0, "result": True}
+        
         try:
             json.loads(message)
         except:
-            return(b'bruh')
+            response = template
+            response["error"] = "ur mom"
+            response["result"] = "no this is not json"
+            return(json.dumps(response).encode("utf-8"))
         else:
-            return('yes this is valid json')
-            
+            response = template
+            response["result"] = "valid json"
+            return(json.dumps(response).encode("utf-8"))     
+
+        
 async def main(config, global_config):
     loop = asyncio.get_running_loop()
         
