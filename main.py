@@ -9,7 +9,7 @@ import zmq
 from jsonrpcserver import method, async_dispatch as dispatch
 import json
 
-logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
+logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class poolFramework:
