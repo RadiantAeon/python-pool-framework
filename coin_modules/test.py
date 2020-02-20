@@ -3,7 +3,7 @@ import logging
 import asyncio
 class TCPServer(asyncio.Protocol):
     def __init__(self):
-        logging.basicConfig(format="%(levelname)s:%(module)s:%(message)s", level=logging.INFO)
+        logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
         self.log = logging.getLogger(__name__)
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
