@@ -8,19 +8,28 @@ import aiozmq
 import zmq
 from jsonrpcserver import method, async_dispatch as dispatch
 import json
+from pymongo import MongoClient
 
+# initialize logger
 logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class poolFramework:
     def __init__(self):
         self.config = json.loads(open("config.json","r").read())
+        # load ssl certs if defined in config
         if self.config['ssl_keyfile_path'] != "" and self['config.ssl_certfile_path'] != "":
            self.ssl_context = loadSSL()
         else:
            self.ssl_context = None
         self.coin_modules = {}
         self.coin_configs = []
+        # connect to mongodb
+        try:
+            self.mongodb_connection = MongoClient(self.config["mongodb_connection_string"])
+        except:
+            log.error("Mongodb connection failed")
+            quit()
         self.startup()
     
     def startup(self):
@@ -60,7 +69,7 @@ class poolFramework:
                 continue
 
         # check for duplicate ports
-
+        
         ports = []
         for config in self.coin_configs:
             if config['port'] in ports:
