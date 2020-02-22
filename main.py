@@ -81,7 +81,8 @@ class poolFramework:
         for config in self.coin_configs:
             log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, log, self.ssl_context)
-            asyncio.run(self.coin_modules[config['coin']].main(config, self.config))
+            # send the coin specific config, the global config, and the mongodb connection for the collection that it is running on
+            asyncio.run(self.coin_modules[config['coin']].main(config, self.config, self.mongodb_connection[config.coin]))
 
     def loadSSL(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)

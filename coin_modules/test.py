@@ -25,7 +25,7 @@ class TCPServer(asyncio.Protocol):
         self.transport.close()
 
 class StratumHandling():
-    __init__(self, mongodb_connection):
+    def __init__(self, mongodb_connection):
         self.mongodb_connection = mongodb_connection
         self.mining = self.Mining()
     
@@ -46,20 +46,29 @@ class StratumHandling():
         template = {"error": None, "id": 0, "result": True}
         
         try:
-            json.loads(message)
+            message_parsed = json.loads(message)
         except:
             response = template
             response["error"] = "ur mom"
             response["result"] = "no this is not json"
-            return(json.dumps(response).encode("utf-8"))
         else:
-            response = template
-            response["result"] = "valid json"
-            return(json.dumps(response).encode("utf-8"))
+            try:
+                response = methods[message_parsed["method"]](message_parsed, template, self.mongodb_connection)
+            except:
+                response = template
+                response["error"] = "Invalid method!"
+        return(json.dumps(response).encode("utf-8"))
         
-class Mining:
-        def authorize(params):
-            continue
+class Mining():
+        def authorize(self, message, template, mongodb_connection):
+            params = message["params"]
+            # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
+            if mongodb_connection.find_one({"user": params[0], "password": params[1]}) != None:
+                template["result"] = True
+            else:
+                template["result"] = False
+                template["error"] = "Unauthorized"
+            return template
 
         
 async def main(config, global_config, mongodb_connection):
