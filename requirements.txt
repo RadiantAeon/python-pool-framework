@@ -2,3 +2,4 @@ jsonrpcserver
 aiozmq
 zmq
 pymongo
+python-bitcoinrpc
