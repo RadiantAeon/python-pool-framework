@@ -1,4 +1,9 @@
 {
     "coin": "test",
-    "port": 6969
+    "port": 6969,
+    "daemeon":{
+        "rpc_username": "change me",
+        "rpc_password": "change me",
+        "daemeon_ip": 127.0.0.1,
+        "daemeon_port": 8332
 }
