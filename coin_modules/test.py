@@ -4,19 +4,21 @@ import asyncio
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 
 class TCPServer(asyncio.Protocol):
-    def __init__(self, mongodb_connection, rpc_connection):
-        logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
-        self.log = logging.getLogger(__name__)
+    def __init__(self, mongodb_connection, rpc_connection, log):
+        self.log = log
         self.mongodb_connection = mongodb_connection
         self.rpc_connection = rpc_connection
+        self.active_transports = []
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
         self.log.info('Connection from {}'.format(peername))
         self.transport = transport
+        self.active_transport.append(transport)
 
     def data_received(self, data):
         message = data.decode()
         self.log.debug('Data received: {!r}'.format(message))
+        
         
         message = StratumHandling.handleMessage(message, mongodb_connection, rpc_connection)
         
@@ -27,11 +29,11 @@ class TCPServer(asyncio.Protocol):
         self.transport.close()
 
 class StratumHandling():
-    def __init__(self, mongodb_connection):
-        self.mongodb_connection = mongodb_connection
+    def __init__(self):
         self.mining = self.Mining()
+        self.daemon = self.Daemon()
     
-    def handleMessage(self, message):
+    def handleMessage(self, message, mongodb_connection, rpc_connection):
         # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
         methods = {
             "mining.authorize": self.mining.authorize,
@@ -41,7 +43,8 @@ class StratumHandling():
             "mining.submit": self.mining.submit,
             "mining.subscribe": self.mining.subscribe,
             "mining.suggest_difficulty": self.mining.suggest_difficulty,
-            "mining.suggest_target": self.suggest_target
+            "mining.suggest_target": self.mining.suggest_target,
+            "daemon.blocknotify": self.daemon.blocknotify
         }
         
         # generic stratum protocol response
@@ -53,9 +56,10 @@ class StratumHandling():
             response = template
             response["error"] = "ur mom"
             response["result"] = "no this is not json"
+            
         else:
             try:
-                response = methods[message_parsed["method"]](message_parsed, template, self.mongodb_connection)
+                response = methods[message_parsed["method"]](message_parsed, template, self.mongodb_connection, rpc_connection)
             except:
                 response = template
                 response["error"] = "Invalid method!"
@@ -72,16 +76,21 @@ class Mining():
                 template["error"] = "Unauthorized"
             return template
 
+class Daemon():
+    def blocknotify(self, message, template, mongodb_connection, rpc_connection):
         
-async def main(config, global_config, mongodb_connection):
-    #connects to bitcoin daemeon with settings from config
-    rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(config["rpc_username"], config["rpc_password"], config["daemon_ip"], config["daemon_port"]))
+
+class Client():
+    
+async def main(config, global_config, mongodb_connection, log):
+    #connects to bitcoin daemon with settings from config
+    rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(config['daemon']["rpc_username"], config['daemon']["rpc_password"], config['daemon']["daemon_ip"], config['daemon']["daemon_port"]))
     loop = asyncio.get_running_loop()
         
     # pro tip - the config passed to it is the coin specific one and the self.config is the global config
     server = await loop.create_server(
         # initializes tcp server on ip and port defined in config
-        lambda: TCPServer(mongodb_connection, rpc_connection),
+        lambda: TCPServer(mongodb_connection, rpc_connection, log),
         global_config['ip'], config['port'])
 
     async with server:
