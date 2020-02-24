@@ -81,7 +81,7 @@ class poolFramework:
         for config in self.coin_configs:
             log.info("Initialized " + str(config['coin']) + " stratum")
             #main(self.config, config, log, self.ssl_context)
-            curr_logger = logging.basicConfig(format="%(asctime)s " + config['coin'] + ": %(message)s", level=logging.INFO)
+            curr_logger = logging.getLogger(config['coin'])
             # send the coin specific config, the global config, the mongodb connection for the collection that it is running on, and the logger
             asyncio.run(self.coin_modules[config['coin']].main(config, self.config, self.mongodb_connection[config.coin]), curr_logger)
 
