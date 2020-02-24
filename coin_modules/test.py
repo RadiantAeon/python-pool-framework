@@ -1,12 +1,14 @@
 import json
 import logging
 import asyncio
+from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 
 class TCPServer(asyncio.Protocol):
-    def __init__(self, mongodb_connection):
+    def __init__(self, mongodb_connection, rpc_connection):
         logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
         self.log = logging.getLogger(__name__)
         self.mongodb_connection = mongodb_connection
+        self.rpc_connection = rpc_connection
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
         self.log.info('Connection from {}'.format(peername))
@@ -16,7 +18,7 @@ class TCPServer(asyncio.Protocol):
         message = data.decode()
         self.log.debug('Data received: {!r}'.format(message))
         
-        message = StratumHandling.handleMessage(message, mongodb_connection)
+        message = StratumHandling.handleMessage(message, mongodb_connection, rpc_connection)
         
         self.log.debug('Send: {!r}'.format(message))
         self.transport.write(data)
@@ -60,7 +62,7 @@ class StratumHandling():
         return(json.dumps(response).encode("utf-8"))
         
 class Mining():
-        def authorize(self, message, template, mongodb_connection):
+        def authorize(self, message, template, mongodb_connection, rpc_connection):
             params = message["params"]
             # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
             if mongodb_connection.find_one({"user": params[0], "password": params[1]}) != None:
@@ -72,11 +74,14 @@ class Mining():
 
         
 async def main(config, global_config, mongodb_connection):
+    #connects to bitcoin daemeon with settings from config
+    rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(config["rpc_username"], config["rpc_password"], config["daemon_ip"], config["daemon_port"]))
     loop = asyncio.get_running_loop()
         
     # pro tip - the config passed to it is the coin specific one and the self.config is the global config
     server = await loop.create_server(
-        lambda: TCPServer(mongodb_connection),
+        # initializes tcp server on ip and port defined in config
+        lambda: TCPServer(mongodb_connection, rpc_connection),
         global_config['ip'], config['port'])
 
     async with server:
