@@ -83,7 +83,7 @@ class poolFramework:
             #main(self.config, config, log, self.ssl_context)
             curr_logger = logging.getLogger(config['coin'])
             # send the coin specific config, the global config, the mongodb connection for the collection that it is running on, and the logger
-            asyncio.run(self.coin_modules[config['coin']].main(config, self.config, self.mongodb_connection[config.coin]), curr_logger)
+            asyncio.run(self.coin_modules[config['coin']].Main(config, self.config, self.mongodb_connection[config.coin]), curr_logger)
 
     def loadSSL(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
