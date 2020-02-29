@@ -15,7 +15,7 @@ class TCPServer(self, asyncio.Protocol):
         self.log.debug('Data received: {!r}'.format(message))
         
         
-        message = self.stratumHandling.handleMessage(self, message)
+        message = self.stratumHandling.handle_message(self, message)
         
         self.log.debug('Send: {!r}'.format(message))
         self.transport.write(data)
@@ -24,7 +24,7 @@ class TCPServer(self, asyncio.Protocol):
         self.transport.close()
 
 class StratumHandling():
-    def handleMessage(self, message):
+    def handle_message(self, message):
         # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
         methods = {
             "mining.authorize": self.mining.authorize,
@@ -85,7 +85,6 @@ class Main():
         # this makes it hella easier to access variables such as active_tranports and gets rid of the shit ton of args passed to everything - i love oop
         self.log = log
         self.mongodb_connection = mongodb_connection
-        self.rpc_connection = rpc_connection
         self.stratumHandling = StratumHandling()
         self.mining = self.Mining()
         self.daemon = self.Daemon()
@@ -93,11 +92,11 @@ class Main():
         self.tcpserver = self.TCPServer()
         self.active_transports = []
         self.config = config
-        self.globa_config = global_config
+        self.global_config = global_config
+        # connects to bitcoin daemon with settings from config
+        self.rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(self.config['daemon']["rpc_username"], self.config['daemon']["rpc_password"], self.config['daemon']["daemon_ip"], self.config['daemon']["daemon_port"]))
         self.main()
     async def main(self):
-        #connects to bitcoin daemon with settings from config
-        rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(self.config['daemon']["rpc_username"], self.config['daemon']["rpc_password"], self.config['daemon']["daemon_ip"], self.config['daemon']["daemon_port"]))
         loop = asyncio.get_running_loop()
         
         server = await loop.create_server(
