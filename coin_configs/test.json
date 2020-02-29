@@ -4,6 +4,10 @@
     "daemeon":{
         "rpc_username": "change me",
         "rpc_password": "change me",
-        "daemeon_ip": 127.0.0.1,
+        "daemeon_ip": "127.0.0.1",
         "daemeon_port": 8332
+    },
+    "stratum":{
+        "template": {"error": null, "id": 0, "result": true}
+    }
 }

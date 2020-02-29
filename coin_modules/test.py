@@ -3,7 +3,7 @@ import logging
 import asyncio
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 
-class TCPServer(asyncio.Protocol):
+class TCPServer(self, asyncio.Protocol):
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
         self.log.info('Connection from {}'.format(peername))
@@ -39,7 +39,7 @@ class StratumHandling():
         }
         
         # generic stratum protocol response
-        template = {"error": None, "id": 0, "result": True}
+        template = self.config['stratum']['template']
         
         # check for valid json and if it isn't valid cyberbully the sender
         try:
@@ -71,8 +71,12 @@ class Mining():
 
 class Daemon():
     def blocknotify(self, message, template):
-        for transport in self.active_transports:
+        response = template
 
+        response['method'] = "mining.notify"
+
+        for transport in self.active_transports:
+            transport.write(response)
 
 class Client():
 
@@ -85,15 +89,17 @@ class Main():
         self.stratumHandling = StratumHandling()
         self.mining = self.Mining()
         self.daemon = self.Daemon()
+        self.client = self.Client()
         self.tcpserver = self.TCPServer()
         self.active_transports = []
+        self.config = config
+        self.globa_config = global_config
         self.main()
     async def main(self):
         #connects to bitcoin daemon with settings from config
         rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(self.config['daemon']["rpc_username"], self.config['daemon']["rpc_password"], self.config['daemon']["daemon_ip"], self.config['daemon']["daemon_port"]))
         loop = asyncio.get_running_loop()
         
-        # pro tip - the config passed to it is the coin specific one and the self.config is the global config
         server = await loop.create_server(
             # initializes tcp server on ip and port defined in config
             lambda: self.tcpserver(self),
