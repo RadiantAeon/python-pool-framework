@@ -37,6 +37,21 @@ class TCPServer(object):
         self.transport_num = 0
         self.config = config
         self.global_config = global_config
+        # generic stratum protocol response
+        self.response_template = self.config['stratum']['response_template']
+        # this is just a variable to add onto so each thread can tell when there is a new block
+        self.block_num = 0
+        self.job_template = [
+            0, #  job_id - ID of the job. Use this ID while submitting share generated from this job.
+            0, # prevhash - Initial part of coinbase transaction.
+            0, # coinb1 - Initial part of coinbase transaction.
+            0, # coinb2 - Final part of coinbase transaction.
+            [], # merkle_branch - List of hashes, will be used for calculation of merkle root. This is not a list of all transactions, it only contains prepared hashes of steps of merkle tree algorithm.
+            0, # version - Bitcoin block version.
+            0, # nbits - Encoded current network difficulty
+            0, # ntime - Current ntime/
+            True, # clean_jobs - When true, server indicates that submitting shares from previous jobs don't have a sense and such shares will be rejected. When this flag is set, miner should also drop all previous jobs, so job_ids can be eventually rotated.
+        ]
         # connects to bitcoin daemon with settings from config
         self.rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s"%(self.config['daemon']["rpc_username"], self.config['daemon']["rpc_password"], self.config['daemon']["daemon_ip"], self.config['daemon']["daemon_port"]))
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,16 +68,22 @@ class TCPServer(object):
 class StratumHandling():
     def listen(self, client, address):
         size = 1024
+        cached_block_num = 0
         while True:
             try:
                 data = client.recv(size)
                 if data:
-                    # Set the response to echo back the received data
+                    # send the message to the handler below
                     response = self.handle_message(data)
                     client.send(response)
                 else:
                     self.log.debug("Client " + str(address) + " disconnected")
                     raise Exception("Client disconnected")
+                if self.block_num != cached_block_num:
+                    response = self.response_template
+                    response['error'] =  None
+                    response['params'] = self.job_template
+                    client.send(json.dumps(response))
             except:
                 client.close()
                 return False
@@ -81,44 +102,38 @@ class StratumHandling():
             "daemon.blocknotify": self.daemon.blocknotify
         }
         
-        # generic stratum protocol response
-        template = self.config['stratum']['template']
-        
         # check for valid json and if it isn't valid cyberbully the sender
         try:
             message_parsed = json.loads(message)
         except:
-            response = template
+            response = self.response_template
             response["error"] = "ur mom"
             response["result"] = "no this is not json"
         
         # otherwise send the message to the correct method
         else:
             try:
-                response = methods[message_parsed["method"]](self, message_parsed, template)
+                response = methods[message_parsed["method"]](self, message_parsed)
             except:
-                response = template
+                response = self.template
                 response["error"] = "Invalid method!"
         return(json.dumps(response).encode("utf-8"))
         
 class Mining:
-        def authorize(self, message, template):
+        def authorize(self, message):
             params = message["params"]
+            response = self.response_template
             # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
             if self.mongodb_connection.find_one({"user": params[0], "password": params[1]}) != None:
-                template["result"] = True
+                response["result"] = True
             else:
-                template["result"] = False
-                template["error"] = "Unauthorized"
-            return template
+                response["result"] = False
+                response["error"] = "Unauthorized"
+            return response
 
 class Daemon:
-    def blocknotify(self, message, template):
-        response = template
-
-        response['method'] = "mining.notify"
-
-        for transport in self.active_transports:
-            transport.write(response)
+    def blocknotify(self, message):
+        # adds one to the block_num var which each thread checks for so we can broadcast new jobs
+        self.block_num += 1
 
 class Client:

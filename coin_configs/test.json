@@ -8,6 +8,6 @@
         "daemeon_port": 8332
     },
     "stratum":{
-        "template": {"error": null, "id": 0, "result": true}
+        "response_template": {"error": null, "id": 0, "result": true}
     }
 }
