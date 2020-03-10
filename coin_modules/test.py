@@ -5,26 +5,6 @@ import threading
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 
 class TCPServer(object):
-    """def connection_made(self, transport):
-        peername = transport.get_extra_info('peername')
-        self.log.info('Connection from {}'.format(peername))
-        #self.transport = transport
-        # add transports to the active_transports dictionary with the transport stored in a dictionary
-        self.transport_num += 1
-        self.active_transports[str(self.transport_num)] = {"transport": transport}
-
-    def data_received(self, data):
-        message = data.decode()
-        self.log.debug('Data received: {!r}'.format(message))
-
-
-        message = self.stratumHandling.handle_message(self, message)
-
-        self.log.debug('Send: {!r}'.format(message))
-        self.transport.write(data)
-
-        self.log.debug('Close the client socket')
-        self.transport.close()"""
     def __init__(self, config, global_config, mongodb_connection, log):
         # this makes it hella easier to access variables such as active_tranports and gets rid of the shit ton of args passed to everything - i love oop
         self.log = log
