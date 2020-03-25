@@ -46,7 +46,7 @@ class Daemon:
         return
 
 
-class StratumHandling(Mining, Daemon):
+class StratumHandling:
     def listen(self, client, address, job_id):
         size = 1024
         cached_block_height = []
