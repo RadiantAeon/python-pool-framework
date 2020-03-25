@@ -7,15 +7,11 @@ import hashlib
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 
 
-class TCPServer(object):
+class TCPServer(object, StratumHandling, Mining, Daemon):
     def __init__(self, config, global_config, mongodb_connection, log):
         # this makes it hella easier to access variables such as active_tranports and gets rid of the shit ton of args passed to everything - i love oop
         self.log = log
         self.mongodb_connection = mongodb_connection
-        self.stratumHandling = StratumHandling()
-        self.mining = Mining()
-        self.daemon = Daemon()
-        # self.client = Client()
         self.clients = {}
         self.transport_num = 0
         self.config = config
@@ -41,7 +37,7 @@ class TCPServer(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.global_config['ip'], self.config['port']))
-        self.daemon.blocknotify(self, None)
+        Daemon.blocknotify(None)
 
     def listen(self):
         self.sock.listen(5)
@@ -52,7 +48,7 @@ class TCPServer(object):
             self.curr_job_id += 1
 
 
-class StratumHandling():
+class StratumHandling(Mining, Daemon):
     def listen(self, client, address, job_id):
         size = 1024
         cached_block_height = []
@@ -80,15 +76,15 @@ class StratumHandling():
     def handle_message(self, message):
         # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
         methods = {
-            "mining.authorize": self.mining.authorize,
-            "mining.capabilities": self.mining.capabilities,
-            "mining.extranonce.subscribe": self.mining.extranonce_subscribe,
-            "mining.get_transactions": self.mining.get_transactions,
-            "mining.submit": self.mining.submit,
-            "mining.subscribe": self.mining.subscribe,
-            "mining.suggest_difficulty": self.mining.suggest_difficulty,
-            "mining.suggest_target": self.mining.suggest_target,
-            "daemon.blocknotify": self.daemon.blocknotify
+            "mining.authorize": Mining.authorize,
+            "mining.capabilities": Mining.capabilities,
+            "mining.extranonce.subscribe": Mining.extranonce_subscribe,
+            "mining.get_transactions": Mining.get_transactions,
+            "mining.submit": Mining.submit,
+            "mining.subscribe": Mining.subscribe,
+            "mining.suggest_difficulty": Mining.suggest_difficulty,
+            "mining.suggest_target": Mining.suggest_target,
+            "daemon.blocknotify": Daemon.blocknotify
         }
         
         # check for valid json and if it isn't valid cyberbully the sender
