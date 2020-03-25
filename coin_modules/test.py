@@ -103,7 +103,7 @@ class StratumHandling:
         return(json.dumps(response).encode("utf-8"))
 
 
-class TCPServer(object, StratumHandling, Mining, Daemon):
+class TCPServer(StratumHandling, Mining, Daemon):
     def __init__(self, config, global_config, mongodb_connection, log):
         # this makes it hella easier to access variables such as active_tranports and gets rid of the shit ton of args passed to everything - i love oop
         self.log = log
@@ -133,7 +133,7 @@ class TCPServer(object, StratumHandling, Mining, Daemon):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.global_config['ip'], self.config['port']))
-        Daemon.blocknotify(None)
+        Daemon.blocknotify(self, None)
 
     def listen(self):
         self.sock.listen(5)
