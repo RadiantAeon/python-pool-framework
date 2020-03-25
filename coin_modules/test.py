@@ -13,9 +13,9 @@ class TCPServer(object):
         self.log = log
         self.mongodb_connection = mongodb_connection
         self.stratumHandling = StratumHandling()
-        self.mining = self.Mining()
-        self.daemon = self.Daemon()
-        self.client = self.Client()
+        self.mining = Mining()
+        self.daemon = Daemon()
+        # self.client = Client()
         self.clients = {}
         self.transport_num = 0
         self.config = config
