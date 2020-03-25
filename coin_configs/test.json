@@ -1,11 +1,11 @@
 {
     "coin": "test",
     "port": 6969,
-    "daemeon":{
+    "daemon":{
         "rpc_username": "change me",
         "rpc_password": "change me",
-        "daemeon_ip": "127.0.0.1",
-        "daemeon_port": 8332
+        "daemon_ip": "127.0.0.1",
+        "daemon_port": 8332
     },
     "stratum":{
         "response_template": {"error": null, "id": 0, "result": true}
