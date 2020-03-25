@@ -41,6 +41,7 @@ class TCPServer(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.global_config['ip'], self.config['port']))
+        self.daemeon.blocknotify(self, None)
 
     def listen(self):
         self.sock.listen(5)
