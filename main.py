@@ -4,11 +4,12 @@ import importlib
 import ssl
 import json
 from pymongo import MongoClient
+import socketserver
 
 # initialize logger
 logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
 log = logging.getLogger(__name__)
-config = json.loads(open("config.json","r").read())
+global_config = json.loads(open("config.json","r").read())
 coin_modules = {}
 coin_configs = []
 coin_config_dir = 'coin_configs'
@@ -16,7 +17,7 @@ coin_modules_dir = 'coin_modules'
 
 # connect to mongodb
 try:
-    mongodb_connection = MongoClient(config["mongodb_connection_string"])
+    mongodb_connection = MongoClient(globalconfig["mongodb_connection_string"])
 except:
     log.error("Mongodb connection failed")
     quit()
@@ -28,7 +29,7 @@ for filename in os.listdir(directory):
     filename = os.fsdecode(filename)
     if filename.endswith(".json"):
         # open the current coin config
-        curr_config = json.loads(open(config['coin_config_dir'] + "/" + filename,"r").read())
+        curr_config = json.loads(open(coin_config_dir + "/" + filename,"r").read())
                 
         # only load the coin if the file name is the same as the coin name and the corresponding python file exists
         if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(coin_modules_dir + '/' + curr_config['coin'] + ".py"):
@@ -48,8 +49,9 @@ for config in coin_configs:
     else:
         ports.append(config['port'])
 
+stratumServers = []
 for config in coin_configs:
     log.info("Initialized " + str(config['coin']) + " stratum")
     curr_logger = logging.getLogger(config['coin'])
     # send the coin specific config, the global config, the mongodb connection for the collection that it is running on, and the logger
-    coin_modules[config['coin']].TCPServer(config, config, mongodb_connection[config['coin']], curr_logger)
+    stratumServers.append(coin_modules[config['coin']].init_server(config, global_config, mongodb_connection, curr_logger))

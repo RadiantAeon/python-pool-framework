@@ -5,6 +5,7 @@ import threading
 import binascii
 import hashlib
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
+import socketserver
 
 
 class Mining:
@@ -103,7 +104,7 @@ class StratumHandling:
         return(json.dumps(response).encode("utf-8"))
 
 
-class TCPServer(StratumHandling, Mining, Daemon):
+class TCPServer(socketserver.BaseRequestHandler):
     def __init__(self, config, global_config, mongodb_connection, log):
         # this makes it hella easier to access variables such as active_tranports and gets rid of the shit ton of args passed to everything - i love oop
         self.log = log
@@ -142,3 +143,13 @@ class TCPServer(StratumHandling, Mining, Daemon):
             client.settimeout(300)
             threading.Thread(target = self.stratumHandling.listen,args = (client,address, self.curr_job_id)).start()
             self.curr_job_id += 1
+    def handle(self):
+        # self.request - TCP socket connected to the client
+        self.data = self.request.recv(1024).strip()
+        print("{} sent:".format(self.client_address[0]))
+        print(self.data)
+        # just send back ACK for data arrival confirmation
+        self.request.sendall("ACK from TCP Server".encode())
+
+def init_server(config, global_config, mongodb_connection, log):
+    return socketserver.TCPServer((global_config['ip'], config['port']), TCPServer).serve_forever()
