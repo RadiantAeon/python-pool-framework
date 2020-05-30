@@ -9,20 +9,10 @@ from pymongo import MongoClient
 logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
 log = logging.getLogger(__name__)
 config = json.loads(open("config.json","r").read())
-
-# load ssl certs if defined in config
-if config['ssl_keyfile_path'] != "" and config.['ssl_certfile_path'] != "":
-    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ssl_context.options |= (
-        ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
-    )
-    ssl_context.set_ciphers("ECDHE+AESGCM")
-    ssl_context.load_cert_chain(certfile=config['ssl_keyfile_path'], keyfile=config.['ssl_certfile_path']h)
-    ssl_context.set_alpn_protocols(["h2"])
-else:
-    ssl_context = None
-    coin_modules = {}
-    coin_configs = []
+coin_modules = {}
+coin_configs = []
+coin_config_dir = 'coin_configs'
+coin_modules_dir = 'coin_modules'
 
 # connect to mongodb
 try:
@@ -32,37 +22,19 @@ except:
     quit()
 # finish loading config and db stuff
 
-
-directory = os.fsencode(config['coin_config_dir'])
+directory = os.fsencode(coin_config_dir)
 # load configs in config directory
 for filename in os.listdir(directory):
     filename = os.fsdecode(filename)
     if filename.endswith(".json"):
-        # checks if the path in config contains a / on the end or not
-        if config['coin_config_dir'].endswith("/"):
-            curr_config = json.loads(open(config['coin_config_dir'] + filename,"r").read())
-        else:
-            curr_config = json.loads(open(config['coin_config_dir'] + "/" + filename,"r").read())
+        # open the current coin config
+        curr_config = json.loads(open(config['coin_config_dir'] + "/" + filename,"r").read())
                 
-        # only load the config if the file name is the same as the coin name and the server python file exsists
-        if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(config['coin_modules_dir'] + curr_config['coin'] + ".py"):
+        # only load the coin if the file name is the same as the coin name and the corresponding python file exists
+        if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(coin_modules_dir + '/' + curr_config['coin'] + ".py"):
             coin_configs.append(curr_config)
-            spec = importlib.util.spec_from_file_location(curr_config['coin'], config['coin_modules_dir'] + curr_config['coin'] + ".py")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
+            module = importlib.import_module("{}.{}".format(coin_modules_dir, curr_config['coin']))
             coin_modules[curr_config['coin']] = module
-
-            log.info("Added coin module '%s' to modules list", curr_config['coin'])
-        # do the same thing but add a / on the end of the coin module directory because you never know
-        elif curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(config['coin_modules_dir'] + "/" + curr_config['coin'] + ".py"):
-            coin_configs.append(curr_config)
-            spec = importlib.util.spec_from_file_location(curr_config['coin'], config['coin_modules_dir'] + curr_config['coin'] + ".py")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
-            coin_modules[curr_config['coin']] = module
-
             log.info("Added coin module '%s' to modules list", curr_config['coin'])
     else:
         continue
