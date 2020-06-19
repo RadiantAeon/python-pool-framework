@@ -31,7 +31,7 @@ def listen(client, address, job_id):
                 response = handle_message(data)
                 client.send(response)
             else:
-                self.log.debug("Client " + str(address) + " disconnected")
+                log.debug("Client " + str(address) + " disconnected")
                 raise Exception("Client disconnected")
             if block_height != cached_block_height:
                 response = response_template
