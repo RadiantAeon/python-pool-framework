@@ -10,11 +10,11 @@ import socketserver
 
 class TCPServer(socketserver.BaseRequestHandler):
     def handle(self):
-        global job_id
-        job_id += 1
+        global curr_job_id
+        curr_job_id += 1
         # self.request - TCP socket connected to the client
         log.debug("New connection from {}".format(self.client_address))
-        listen(self.request, self.client_address, job_id)
+        listen(self.request, self.client_address, curr_job_id)
 
 
 def listen(client, address, job_id):
