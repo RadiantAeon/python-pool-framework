@@ -168,4 +168,5 @@ def init_server(temp_config, temp_global_config, temp_mongodb_connection, temp_l
         config['daemon']["rpc_username"], config['daemon']["rpc_password"],
         config['daemon']["daemon_ip"],
         config['daemon']["daemon_port"]))
+    log.debug(config["coin"] + " init complete")
     return socketserver.TCPServer((global_config['ip'], config['port']), TCPServer).serve_forever()
