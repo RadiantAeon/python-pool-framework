@@ -55,3 +55,6 @@ for config in coin_configs:
     curr_logger = logging.getLogger(config['coin'])
     # send the coin specific config, the global config, the mongodb connection for the collection that it is running on, and the logger
     stratumServers.append(coin_modules[config['coin']].init_server(config, global_config, mongodb_connection, curr_logger))
+
+while True:
+    command = str(input()) # doesn't do anything yet
