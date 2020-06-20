@@ -49,6 +49,8 @@ def handle_message(message):
     global mongodb_connection
     global rpc_connection
     global log
+    
+    authorized = False # We don't need to read from the db every time to check
 
     def authorize():
         params = message["params"]
@@ -56,6 +58,7 @@ def handle_message(message):
         # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
         if mongodb_connection.find_one({"user": params[0], "password": params[1]}):
             response["result"] = True
+            authorized = True
         else:
             response["result"] = False
             response["error"] = "Unauthorized"
@@ -98,19 +101,22 @@ def handle_message(message):
         "daemon.blocknotify": blocknotify  # not part of stratum - notifications from daemon
     }
 
-    # check for valid json and if it isn't valid cyberbully the sender
+    # check for valid json by trying to load it
     try:
         message = json.loads(message)
     except:
-        raise ValueError('Invalid json was received.')
+        raise ValueError('Invalid json was received.') # We can raise an error because of the try except in the listner
 
     # otherwise send the message to the correct method
     else:
-        try:
-            response = methods[message["method"]]() # no arguments because subfunctions can access parent function vars
-        except:
-            response = response_template
-            response["error"] = "Invalid method!"
+        if authorized and message["method"] != "mining.authorize":
+            try:
+                response = methods[message["method"]]() # no arguments because subfunctions can access parent function vars
+            except:
+                response = response_template
+                response["error"] = "Invalid method!"
+        else:
+            response = methods["mining.authorize"]
     return (json.dumps(response).encode("utf-8"))
 
 
