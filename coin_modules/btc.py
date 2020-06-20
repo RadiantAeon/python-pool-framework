@@ -13,6 +13,7 @@ class TCPServer(socketserver.BaseRequestHandler):
         global job_id
         job_id += 1
         # self.request - TCP socket connected to the client
+        log.debug("New connection from {}".format(self.client_address))
         listen(self.request, self.client_address, job_id)
 
 
@@ -28,7 +29,7 @@ def listen(client, address, job_id):
             data = client.recv(size)
             if data:
                 # send the message to the handler below
-                response = handle_message(data)
+                response = handle_message(data, address)
                 client.send(response)
             else:
                 log.debug("Client " + str(address) + " disconnected")
@@ -44,12 +45,12 @@ def listen(client, address, job_id):
             client.close()
             return False
 
-def handle_message(message):
+def handle_message(message, address):
     global response_template
     global mongodb_connection
     global rpc_connection
     global log
-    
+
     authorized = False # We don't need to read from the db every time to check
 
     def authorize():
@@ -59,9 +60,11 @@ def handle_message(message):
         if mongodb_connection.find_one({"user": params[0], "password": params[1]}):
             response["result"] = True
             authorized = True
+            log.debug("Authorized user {}".format(params[0]))
         else:
             response["result"] = False
             response["error"] = "Unauthorized"
+            log.debug("Failed login by use {}".format(parmas[0]))
         return response
 
     # need to make it so blocknotify isn't attackable - currently anyone can call it to fuck with us
@@ -105,7 +108,8 @@ def handle_message(message):
     try:
         message = json.loads(message)
     except:
-        raise ValueError('Invalid json was received.') # We can raise an error because of the try except in the listner
+        log.debug("Recieved invalid json from {}".format(address))
+        raise ValueError('Invalid json was received from') # We can raise an error because of the try except in the listner
 
     # otherwise send the message to the correct method
     else:

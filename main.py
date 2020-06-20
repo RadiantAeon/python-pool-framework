@@ -30,7 +30,7 @@ for filename in os.listdir(directory):
     if filename.endswith(".json"):
         # open the current coin config
         curr_config = json.loads(open(coin_config_dir + "/" + filename, "r").read())
-                
+
         # only load the coin if the file name is the same as the coin name and the corresponding python file exists
         if curr_config['coin'] == filename.replace(".json", "") and os.path.isfile(coin_modules_dir + '/' + curr_config['coin'] + ".py"):
             coin_configs.append(curr_config)
