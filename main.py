@@ -17,7 +17,7 @@ coin_modules_dir = 'coin_modules'
 
 # connect to mongodb
 try:
-    mongodb_connection = MongoClient(globalconfig["mongodb_connection_string"])
+    mongodb_connection = MongoClient(global_config["mongodb_connection_string"])
 except:
     log.error("Mongodb connection failed")
     quit()
