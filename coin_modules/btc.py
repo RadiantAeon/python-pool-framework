@@ -11,6 +11,7 @@ import socketserver
 class TCPServer(socketserver.BaseRequestHandler):
     def handle(self):
         global curr_job_id
+        self.timeout = 10 # try to force a timeout because socketserver sketchy https://stackoverflow.com/questions/15705948/python-socketserver-timeout
         curr_job_id += 1
         # self.request - TCP socket connected to the client
         log.debug("New connection from {}".format(self.client_address))
@@ -27,6 +28,7 @@ def listen(client, address, job_id):
     while True:
         try:
             data = client.recv(size)
+            log.debug(data)
             if data:
                 # send the message to the handler below
                 response = handle_message(data, address)
