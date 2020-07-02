@@ -4,16 +4,16 @@ import socket
 import threading
 import binascii
 import hashlib
+import multiprocessing
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
-import socketserver
+from twisted.internet.protocol import Protocol, Factory
+from twisted.internet import reactor
 
 
-class TCPServer(socketserver.BaseRequestHandler):
-    def handle(self):
+class TCPServer(Protocol):
+    def connectionMade(self):
         global curr_job_id
-        self.timeout = 10 # try to force a timeout because socketserver sketchy https://stackoverflow.com/questions/15705948/python-socketserver-timeout
         curr_job_id += 1
-        # self.request - TCP socket connected to the client
         log.debug("New connection from {}".format(self.client_address))
         listen(self.request, self.client_address, curr_job_id)
 
@@ -25,9 +25,10 @@ def listen(client, address, job_id):
     global curr_job
     size = 1024
     cached_block_height = []
+    recieve = multiprocessing.Process(target=client.recv, name="recieve", args=(size)) # socketserver doesn't let you use timeout https://stackoverflow.com/questions/15705948/python-socketserver-timeout
     while True:
         try:
-            data = client.recv(size)
+            data = recieve.start()
             log.debug(data)
             if data:
                 # send the message to the handler below
@@ -162,8 +163,7 @@ def init_server(temp_config, temp_global_config, temp_mongodb_connection, temp_l
         0,  # version - Bitcoin block version.
         0,  # nbits - Encoded current network difficulty
         0,  # ntime - Current ntime/
-        True
-        # clean_jobs - When true, server indicates that submitting shares from previous jobs don't have a sense and such shares will be rejected. When this flag is set, miner should also drop all previous jobs, so job_ids can be eventually rotated.
+        True  # clean_jobs - When true, server indicates that submitting shares from previous jobs don't have a sense and such shares will be rejected. When this flag is set, miner should also drop all previous jobs, so job_ids can be eventually rotated.
     ]
     # connects to bitcoin daemon with settings from config
     rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s" % (
