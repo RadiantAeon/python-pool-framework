@@ -11,14 +11,20 @@ from twisted.internet import reactor
 
 
 class TCPServer(Protocol):
+    # quote wiki "The factory must be passed to {protocol name}.__init__ when creating a new instance. The factory is used to share state that exists beyond the lifetime of any given connection."
+    # see https://twistedmatrix.com/documents/current/core/howto/servers.html
+    def __init__(self, factory):
+        self.factory = factory
+
     def connectionMade(self):
-        global curr_job_id
-        curr_job_id += 1
-        log.debug("New connection from {}".format(self.client_address))
-        listen(self.request, self.client_address, curr_job_id)
+        self.factory.curr_job_id += 1
+        self.factory.log.debug("New connection from {}".format(self.client_address))
+    
+    def dataRecieved(self, data):
+        response = self.factory.handle_data(data)
 
 
-def listen(client, address, job_id):
+'''def listen(client, address, job_id):
     global log
     global response_template
     global block_height
@@ -46,85 +52,100 @@ def listen(client, address, job_id):
                 client.send(json.dumps(response))
         except:
             client.close()
-            return False
+            return False'''
 
-def handle_message(message, address):
-    global response_template
-    global mongodb_connection
-    global rpc_connection
-    global log
+class StratumProtocol(Factory):
 
-    authorized = False # We don't need to read from the db every time to check
+    # tells twisted the protocol we want to use
+    protocol = TCPServer
 
-    def authorize():
-        params = message["params"]
-        response = response_template
-        # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
-        if mongodb_connection.find_one({"user": params[0], "password": params[1]}):
-            response["result"] = True
-            authorized = True
-            log.debug("Authorized user {}".format(params[0]))
-        else:
-            response["result"] = False
-            response["error"] = "Unauthorized"
-            log.debug("Failed login by use {}".format(parmas[0]))
-        return response
+    def __init__(self, response_template, mongodb_connection, rpc_connection, log):
+        self.response_template = response_template
+        self.mongodb_connection = mongodb_connection
+        self.rpc_connection = rpc_connection
+        self.log = log
 
-    # need to make it so blocknotify isn't attackable - currently anyone can call it to fuck with us
-    def blocknotify():
-        # adds one to the block_num var which each thread checks for so we can broadcast new jobs
-        curr_job = job_template
-        try:
-            blocktemplate = rpc_connection.getblocktemplate
-            if blocktemplate["error"]:
-                raise Exception("Failed getblocktemplate rpc call! Is the bitcoin daemon running?")
-            log.info("New block at height {}".format(blocktemplate["result"]["height"]))
-        except Exception as error:
-            log.error(error)
-        curr_job[1] = blocktemplate["result"]["previousblockhash"]
-        coinbase = binascii.a2b_hex(blocktemplate['coinbasetxn']['data'])
-        extradata = b'yeet'
-        original_length = ord(coinbase[41:42])
-        curr_job[2] = coinbase[0:41]  # first part of coinbase transaction
-        curr_job[3] = coinbase[42:42 + original_length] + extradata + coinbase[42 + original_length:]  # second part of coinbase transaction
-        transaction_list = [coinbase] + [binascii.a2b_hex(a['data']) for a in blocktemplate["result"]["transactions"]]
-        curr_job[4] = [hashlib.sha256(hashlib.sha256(transaction).digest()).digest() for transaction in transaction_list]  # hash every transaction twice to make prepared merkle hashes
-        curr_job[5] = blocktemplate["result"]["version"]
-        curr_job[6] = blocktemplate["result"]["curtime"]
-        self.curr_job = curr_job
-        self.block_height = blocktemplate["result"]["height"]
-        return
-    # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
-    methods = {
-        "mining.authorize": authorize,
-        "mining.capabilities": capabilities,
-        "mining.extranonce.subscribe": extranonce_subscribe,
-        "mining.get_transactions": get_transactions,
-        "mining.submit": submit,
-        "mining.subscribe": subscribe,
-        "mining.suggest_difficulty": suggest_difficulty,
-        "mining.suggest_target": suggest_target,
-        "daemon.blocknotify": blocknotify  # not part of stratum - notifications from daemon
-    }
+    def handle_data(self, data, address):
 
-    # check for valid json by trying to load it
-    try:
-        message = json.loads(message)
-    except:
-        log.debug("Recieved invalid json from {}".format(address))
-        raise ValueError('Invalid json was received from') # We can raise an error because of the try except in the listner
+        messages = data.split('\n')
+        for message in messages:
+            handle_message(message, address)
 
-    # otherwise send the message to the correct method
-    else:
-        if authorized and message["method"] != "mining.authorize":
+    def handle_message(self, data, address):
+
+        # wtf does this do again
+        #authorized = False # We don't need to read from the db every time to check
+
+        def authorize():
+            params = message["params"]
+            response = response_template
+            # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
+            if self.mongodb_connection.find_one({"user": params[0], "password": params[1]}):
+                response["result"] = True
+                authorized = True
+                log.debug("Authorized user {}".format(params[0]))
+            else:
+                response["result"] = False
+                response["error"] = "Unauthorized"
+                log.debug("Failed login by use {}".format(params[0]))
+            return response
+
+        # need to make it so blocknotify isn't attackable - currently anyone can call it to fuck with us
+        def blocknotify():
+            # adds one to the block_num var which each thread checks for so we can broadcast new jobs
+            curr_job = self.job_template
             try:
-                response = methods[message["method"]]() # no arguments because subfunctions can access parent function vars
-            except:
-                response = response_template
-                response["error"] = "Invalid method!"
+                blocktemplate = rpc_connection.getblocktemplate
+                if blocktemplate["error"]:
+                    raise Exception("Failed getblocktemplate rpc call! Is the bitcoin daemon running?")
+                log.info("New block at height {}".format(blocktemplate["result"]["height"]))
+            except Exception as error:
+               log.error(error)
+            curr_job[1] = blocktemplate["result"]["previousblockhash"]
+            coinbase = binascii.a2b_hex(blocktemplate['coinbasetxn']['data'])
+            extradata = b'yeet'
+            original_length = ord(coinbase[41:42])
+            curr_job[2] = coinbase[0:41]  # first part of coinbase transaction
+            curr_job[3] = coinbase[42:42 + original_length] + extradata + coinbase[42 + original_length:]  # second part of coinbase transaction
+            transaction_list = [coinbase] + [binascii.a2b_hex(a['data']) for a in blocktemplate["result"]["transactions"]]
+            curr_job[4] = [hashlib.sha256(hashlib.sha256(transaction).digest()).digest() for transaction in transaction_list]  # hash every transaction twice to make prepared merkle hashes
+            curr_job[5] = blocktemplate["result"]["version"]
+            curr_job[6] = blocktemplate["result"]["curtime"]
+            self.curr_job = curr_job
+            self.block_height = blocktemplate["result"]["height"]
+            return
+        
+        # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
+        methods = {
+            "mining.authorize": authorize,
+            "mining.capabilities": capabilities,
+            "mining.extranonce.subscribe": extranonce_subscribe,
+            "mining.get_transactions": get_transactions,
+            "mining.submit": submit,
+            "mining.subscribe": subscribe,
+            "mining.suggest_difficulty": suggest_difficulty,
+            "mining.suggest_target": suggest_target,
+            "daemon.blocknotify": blocknotify  # not part of stratum - notifications from daemon
+        }
+
+        # check for valid json by trying to load it
+        try:
+            message = json.loads(message)
+        except:
+            log.debug("Recieved invalid json from {}".format(address))
+            raise ValueError('Invalid json was received from') # We can raise an error because of the try except in the listner
+
+        # otherwise send the message to the correct method
         else:
-            response = methods["mining.authorize"]
-    return (json.dumps(response).encode("utf-8"))
+            if authorized and message["method"] != "mining.authorize":
+                try:
+                    response = methods[message["method"]]() # no arguments because subfunctions can access parent function vars
+                except:
+                    response = response_template
+                    response["error"] = "Invalid method!"
+            else:
+                response = methods["mining.authorize"]
+        return (json.dumps(response).encode("utf-8"))
 
 
 # called by main to start the server thread
