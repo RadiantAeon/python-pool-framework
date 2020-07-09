@@ -8,6 +8,7 @@ import multiprocessing
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from twisted.internet.protocol import Protocol, Factory
 from twisted.internet import reactor
+from twisted.internet.endpoints import TCP4ServerEndpoint
 
 
 class TCPServer(Protocol):
@@ -21,7 +22,9 @@ class TCPServer(Protocol):
         self.factory.log.debug("New connection from {}".format(self.client_address))
     
     def dataRecieved(self, data):
-        response = self.factory.handle_data(data)
+        responses = self.factory.handle_data(data)
+        for response in responses:
+            self.transport.write(response + "\n")
 
 
 '''def listen(client, address, job_id):
@@ -59,21 +62,52 @@ class StratumProtocol(Factory):
     # tells twisted the protocol we want to use
     protocol = TCPServer
 
-    def __init__(self, response_template, mongodb_connection, rpc_connection, log):
-        self.response_template = response_template
-        self.mongodb_connection = mongodb_connection
-        self.rpc_connection = rpc_connection
+    def __init__(self, config, global_config, mongodb_connection, log):
+        # set values to variables that we will be using
+        # variables with no comments do exactly what the variable name implies
         self.log = log
+        self.mongodb_connection = mongodb_connection
+        self.clients = {}
+        self.transport_num = 0
+        self.config = config
+        self.global_config = global_config
+        # generic stratum protocol response
+        self.response_template = config['stratum']['response_template']
+        # this is just a variable to add onto so all handler threads can tell when there is a new block
+        self.block_height = 0
+        # variable that gets incremented to make a unique id for each connection
+        self.curr_job_id = 1
+        self.job_template = [
+            0,  # job_id - ID of the job. Use this ID while submitting share generated from this job.
+            0,  # prevhash - Initial part of coinbase transaction.
+            0,  # coinb1 - Initial part of coinbase transaction.
+            0,  # coinb2 - Final part of coinbase transaction.
+            [],
+            # merkle_branch - List of hashes, will be used for calculation of merkle root. This is not a list of all transactions, it only contains prepared hashes of steps of merkle tree algorithm.
+            0,  # version - Bitcoin block version.
+            0,  # nbits - Encoded current network difficulty
+            0,  # ntime - Current ntime/
+            True  # clean_jobs - When true, server indicates that submitting shares from previous jobs don't have a sense and such shares will be rejected. When this flag is set, miner should also drop all previous jobs, so job_ids can be eventually rotated.
+        ]
+        # connects to bitcoin daemon with settings from config
+        self.rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s" % (
+            config['daemon']["rpc_username"], config['daemon']["rpc_password"],
+            config['daemon']["daemon_ip"],
+            config['daemon']["daemon_port"]))
+        log.debug(config["coin"] + " init complete")
 
     def handle_data(self, data, address):
-
+        
+        # in case the data contains multiple messages
         messages = data.split('\n')
+        responses = []
         for message in messages:
-            handle_message(message, address)
+            responses.append(handle_message(message, address))
+        return responses
 
     def handle_message(self, data, address):
 
-        # wtf does this do again
+        # oh i remember but this doesnt work rn
         #authorized = False # We don't need to read from the db every time to check
 
         def authorize():
@@ -149,47 +183,7 @@ class StratumProtocol(Factory):
 
 
 # called by main to start the server thread
-def init_server(temp_config, temp_global_config, temp_mongodb_connection, temp_log):
-    # init global vars
-    global log
-    global mongodb_connection
-    global clients
-    global transport_num
-    global config
-    global global_config
-    global response_template
-    global block_height
-    global curr_job_id
-    global job_template
-    global rpc_connection
-    # set values to the global variables
-    log = temp_log
-    mongodb_connection = temp_mongodb_connection
-    clients = {}
-    transport_num = 0
-    config = temp_config
-    global_config = temp_global_config
-    # generic stratum protocol response
-    response_template = config['stratum']['response_template']
-    # this is just a variable to add onto so all handler threads can tell when there is a new block
-    block_height = 0
-    curr_job_id = 1
-    job_template = [
-        0,  # job_id - ID of the job. Use this ID while submitting share generated from this job.
-        0,  # prevhash - Initial part of coinbase transaction.
-        0,  # coinb1 - Initial part of coinbase transaction.
-        0,  # coinb2 - Final part of coinbase transaction.
-        [],
-        # merkle_branch - List of hashes, will be used for calculation of merkle root. This is not a list of all transactions, it only contains prepared hashes of steps of merkle tree algorithm.
-        0,  # version - Bitcoin block version.
-        0,  # nbits - Encoded current network difficulty
-        0,  # ntime - Current ntime/
-        True  # clean_jobs - When true, server indicates that submitting shares from previous jobs don't have a sense and such shares will be rejected. When this flag is set, miner should also drop all previous jobs, so job_ids can be eventually rotated.
-    ]
-    # connects to bitcoin daemon with settings from config
-    rpc_connection = AuthServiceProxy("http://%s:%s@%s:%s" % (
-        config['daemon']["rpc_username"], config['daemon']["rpc_password"],
-        config['daemon']["daemon_ip"],
-        config['daemon']["daemon_port"]))
-    log.debug(config["coin"] + " init complete")
-    return socketserver.TCPServer((global_config['ip'], config['port']), TCPServer).serve_forever()
+def init_server(config, global_config, mongodb_connection, log):
+    endpoint = TCP4ServerEndpoint(reactor, config['port'])
+    endpoint.listen(StratumProtocol(config, global_config, mongodb_connection, log))
+    reactor.run()
