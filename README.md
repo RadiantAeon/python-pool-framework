@@ -12,5 +12,8 @@ I made this project after seeing yiimp fall into dissarray because tpruvot stopp
 ## Why should I contribute?
 Every commit helps! Everything you do helps push this one step closer to production and helps the community to easily achieve the goal of decentralized mining with small, community pools, not monopolistic pools such as f2pool.
 
+## How to contribute
+Look for things to do in README.md of dev-notes!
+
 ## Setup
 Install mongodb with user authentication for security ([directions](https://docs.mongodb.com/manual/tutorial/enable-authentication/))
