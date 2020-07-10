@@ -149,6 +149,11 @@ class StratumProtocol(Factory):
             self.block_height = blocktemplate["result"]["height"]
             return
         
+        def submit():
+            #check to see if the hash meets the target difficulty for that miner
+            #check to see if hash is valid
+            #write to db
+        
         # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
         methods = {
             "mining.authorize": authorize,
