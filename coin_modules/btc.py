@@ -36,7 +36,7 @@ class TCPServer(LineReceiver):
 
     def handle_message(self, data, address):
 
-        def authorize():
+        def authorize(message):
             params = message["params"]
             response = self.factory.response_template
             # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
@@ -52,7 +52,7 @@ class TCPServer(LineReceiver):
             return response
 
         # need to make it so blocknotify isn't attackable - currently anyone can call it to fuck with us
-        def blocknotify():
+        def blocknotify(message):
             # adds one to the block_num var which each thread checks for so we can broadcast new jobs
             curr_job = self.job_template
             try:
@@ -75,8 +75,20 @@ class TCPServer(LineReceiver):
             self.curr_job = curr_job
             self.block_height = blocktemplate["result"]["height"]
             return
-        
-        def submit():
+
+        '''
+        Miners submit shares using the method "mining.submit". Client submissions contain:
+
+        Worker Name.
+        Job ID.
+        ExtraNonce2.
+        nTime.
+        nOnce.
+        '''
+        def submit(message):
+
+            # To produce coinbase, we just concatenate Coinb1 + Extranonce1 + Extranonce2 + Coinb2 together. That's all!
+            coinbase = self.factory.job_template[2] # where the heck is extranonce1
             #check to see if the hash meets the target difficulty for that miner
             #check to see if hash is valid
             #write to db
@@ -105,7 +117,7 @@ class TCPServer(LineReceiver):
         else:
             if self.authorized and message["method"] != "mining.authorize":
                 try:
-                    response = methods[message["method"]]() # no arguments because subfunctions can access parent function vars
+                    response = methods[message["method"]](message) # try calling the corresponding method handler
                 except:
                     response = self.factory.response_template
                     response["error"] = "Invalid method!"
@@ -134,14 +146,14 @@ class StratumProtocol(Factory):
         self.curr_job_id = 1
         self.job_template = [
             0,  # job_id - ID of the job. Use this ID while submitting share generated from this job.
-            0,  # prevhash - Initial part of coinbase transaction.
+            0,  # prevhash - Used to build header - hash of previous block.
             0,  # coinb1 - Initial part of coinbase transaction.
             0,  # coinb2 - Final part of coinbase transaction.
             [],
             # merkle_branch - List of hashes, will be used for calculation of merkle root. This is not a list of all transactions, it only contains prepared hashes of steps of merkle tree algorithm.
             0,  # version - Bitcoin block version.
             0,  # nbits - Encoded current network difficulty
-            0,  # ntime - Current ntime/
+            0,  # ntime - "Current" ntime/
             True  # clean_jobs - When true, server indicates that submitting shares from previous jobs don't have a sense and such shares will be rejected. When this flag is set, miner should also drop all previous jobs, so job_ids can be eventually rotated.
         ]
         # connects to bitcoin daemon with settings from config
