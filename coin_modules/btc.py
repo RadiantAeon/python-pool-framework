@@ -102,11 +102,22 @@ class TCPServer(LineReceiver):
                 merkle_root = hashlib.sha256(hashlib.sha256(merkle_root + binascii.unhexlify(h)))
             merkle_root = binascii.hexlify(merkle_root)
 
-            # note according to slushpool the bytes of the merkle root have to be reversed in the block header
+            # note according to slushpool the bytes of the merkle root have to be reversed in the block header to make it little endian
             # version + prevhash + merkle_root + ntime + nbits + nonce + '000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000'
-            block_header = str(self.factory.job_template[5]) + str(self.factory.job_template[1]) + merkle_root + str(params[3]) + str(self.factory.job_template[6]) + str(params[4]) + '000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000'
-            #check to see if the hash meets the target difficulty for that miner
-            #check to see if hash is valid
+            block_header = str(self.factory.job_template[5]) + str(self.factory.job_template[1]) + merkle_root[::-1] + str(params[3]) + str(self.factory.job_template[6]) + str(params[4]) + '000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000'
+            # yoinked from here https://en.bitcoin.it/wiki/Block_hashing_algorithm
+            block_header_bin = block_header.decode('hex')
+            block_header_hash = hashlib.sha256(hashlib.sha256(block_header_bin).digest()).digest()
+            block_header_hash.encode('hex_codec')
+            block_header_hash[::-1].encode('hex_codec')
+            # example value of block_header_hash at this point '00000000000000001e8d6829a8a21adc5d38d0a473b144b6765798e61f98bd1d'
+
+            target = self.target_difficulty
+            num_zeroes = len(block_header_hash) - len(block_header_hash.lstrip('0')) # compare the length with the leading zeroes and without the leading zeroes to get the number of leading zeroes
+            if num_zeroes > target:
+                #do things here
+                # also check if it hits the global block difficulty
+                continue
             #write to db
         
         # set up switch statement using dictionary containing all the stratum methods as detailed in https://en.bitcoin.it/wiki/Stratum_mining_protocol
