@@ -40,7 +40,10 @@ class TCPServer(LineReceiver):
             params = message["params"]
             response = self.factory.response_template.copy()
             # params format for mining.authorize should be in the format of ["slush.miner1", "password"] according to slush pool docs
-            if self.mongodb_connection.find_one({"user": params[0], "password": params[1]}):
+            # we don't need the uuid here because user/pass should be universal
+            # hash so the key isn't too long
+            lookup_key = hashlib.sha256(json.dumps({"user": params[0], "password": params[1]}))
+            if self.redis_connection.get(lookup_key):
                 response["result"] = True
                 self.authorized = True
                 self.factory.log.debug("Authorized user {}".format(params[0]))
@@ -89,7 +92,6 @@ class TCPServer(LineReceiver):
         '''
         # since the miner just sends us the parts of the job we just need to check if they are valid
         def submit(message):
-
             params = message["params"]
             response = self.factory.response_template.copy()
             if self.factory.extranonce2_size != len(str(params[2])):
@@ -116,7 +118,7 @@ class TCPServer(LineReceiver):
 
             num_zeroes = len(block_header_hash) - len(block_header_hash.lstrip('0')) # compare the length with the leading zeroes and without the leading zeroes to get the number of leading zeroes
 
-            target = mongodb_connection.find_one({"job_id": params[0]}) # get the target share for this worker
+            target = redis_connection.get(self.uuid + ":target:" + params[0]) # get the target share for this worker
             if num_zeroes > target:
                 if num_zeroes > self.block_target: # we found a block
                     pass
@@ -163,13 +165,15 @@ class StratumProtocol(Factory):
     # tells twisted the protocol we want to use
     protocol = TCPServer
 
-    def __init__(self, config, global_config, mongodb_connection, log):
+    def __init__(self, config, global_config, redis_connection, log):
         # set values to variables that we will be using
         # variables with no comments do exactly what the variable name implies
         self.log = log
-        self.mongodb_connection = mongodb_connection
+        self.redis_connection = redis_connection
         self.config = config
         self.global_config = global_config
+        # uuid used for unique redis keys for each module
+        self.uuid = config['uuid']
         # generic stratum protocol response
         self.response_template = config['stratum']['response_template']
         # this is just a variable to add onto so all handler threads can tell when there is a new block
@@ -198,6 +202,6 @@ class StratumProtocol(Factory):
 
 
 # called by main to start the server thread
-def init_server(config, global_config, mongodb_connection, log):
-    reactor.listenTCP(config.port, StratumProtocol(config, global_config, mongodb_connection, log))
+def init_server(config, global_config, redis_connection, log):
+    reactor.listenTCP(config.port, StratumProtocol(config, global_config, redis_connection, log))
     reactor.run()

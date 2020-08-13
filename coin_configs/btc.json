@@ -1,5 +1,6 @@
 {
     "coin": "btc",
+    "uuid": "2da55e0f-522f-4f7c-af7b-356e428561fd",
     "port": 6969,
     "daemon":{
         "rpc_username": "change me",

@@ -3,8 +3,9 @@ import logging
 import importlib
 import ssl
 import json
-from pymongo import MongoClient
+import redis
 import socketserver
+import uuid
 
 # initialize logger
 logging.basicConfig(format="%(asctime)s %(levelname)s:%(module)s: %(message)s", level=logging.INFO)
@@ -15,11 +16,11 @@ coin_configs = []
 coin_config_dir = 'coin_configs'
 coin_modules_dir = 'coin_modules'
 
-# connect to mongodb
+# connect to redis
 try:
-    mongodb_connection = MongoClient(global_config["mongodb_connection_string"])
+    redis_connection = redis.Redis(host=config['redis']['host'], port=config['redis']['port'], db=0)
 except:
-    log.error("Mongodb connection failed")
+    log.error("Redis connection failed")
     quit()
 # finish loading config and db stuff
 
@@ -53,8 +54,8 @@ stratumServers = []
 for config in coin_configs:
     log.info("Initialized " + str(config['coin']) + " stratum")
     curr_logger = logging.getLogger(config['coin'])
-    # send the coin specific config, the global config, the mongodb connection for the collection that it is running on, and the logger
-    stratumServers.append(coin_modules[config['coin']].init_server(config, global_config, mongodb_connection, curr_logger))
+    # send the coin specific config, the global config, the redis connection for the collection that it is running on, and the logger
+    stratumServers.append(coin_modules[config['coin']].init_server(config, global_config, redis_connection, curr_logger))
 
 while True:
     command = str(input()) # doesn't do anything yet

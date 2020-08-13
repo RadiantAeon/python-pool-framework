@@ -1,4 +1,7 @@
 {
     "ip": "127.0.0.1",
-    "mongodb_connection_string": "mongodb://python-pool:PASSWORD@127.0.0.1,mongodb2.example.com/python-pool"
+    "redis": {
+        "host": "localhost",
+        "port": 6379
+    }
 }

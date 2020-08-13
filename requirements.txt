@@ -1,2 +1,2 @@
-pymongo
+redis-py
 python-bitcoinrpc
