@@ -7,8 +7,5 @@
         "rpc_password": "change me",
         "daemon_ip": "127.0.0.1",
         "daemon_port": 8332
-    },
-    "stratum":{
-        "response_template": {"error": null, "id": 0, "result": true}
     }
 }
