@@ -43,6 +43,27 @@ class Response():
         response_string = json.dumps(self.response)
         return response_string
 
+class Worker:
+    def __init__(self, redis_connection, worker_name, worker_pass, uuid):
+        self.redis_connection = redis_connection
+        self.worker_name = worker_name
+        self.worker_pass = worker_pass
+        self.uuid = uuid
+        self.authorized = False
+    
+    def isAuthorized(self):
+        return self.authorized
+    
+    def authorize(self):
+        self.authorized = True
+    
+    def getTarget(self):
+        return self.redis_connection.get(self.redis_connection.get(self.uuid + ":" + workername + ":target")
+    
+    # add x amount of work to the worker which is used to calculate the payout for each block
+    def addWork(self, work):
+        current_work = float(self.redis_connection.get(self.uuid + ":" + workername + ":current_work")) + work
+        self.redis_connection.mset({self.uuid + ":" + workername + ":current_work": current_work})
 # "Client simply opens TCP socket and writes requests to the server in the form of JSON messages finished by the newline character \n" - slushpool
 # Therefore, this is a newline seperated protocol, so we should use line reciever
 class TCPServer(LineReceiver):
