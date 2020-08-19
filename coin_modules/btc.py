@@ -270,5 +270,5 @@ class StratumProtocol(Factory):
 
 # called by main to start the server thread
 def init_server(config, global_config, redis_connection, log):
-    reactor.listenTCP(config.port, StratumProtocol(config, global_config, redis_connection, log))
+    reactor.listenTCP(config['port'], StratumProtocol(config, global_config, redis_connection, log))
     reactor.run()
