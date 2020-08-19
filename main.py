@@ -18,7 +18,7 @@ coin_modules_dir = 'coin_modules'
 
 # connect to redis
 try:
-    redis_connection = redis.Redis(host=config['redis']['host'], port=config['redis']['port'], db=0)
+    redis_connection = redis.Redis(host=global_config['redis']['host'], port=global_config['redis']['port'], db=0)
 except:
     log.error("Redis connection failed")
     quit()
