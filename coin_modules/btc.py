@@ -43,6 +43,7 @@ class Response():
         response_string = json.dumps(self.response)
         return response_string
 
+
 class Worker:
     def __init__(self, redis_connection, worker_name, worker_pass, uuid):
         self.redis_connection = redis_connection
@@ -58,12 +59,15 @@ class Worker:
         self.authorized = True
     
     def getTarget(self):
-        return self.redis_connection.get(self.redis_connection.get(self.uuid + ":" + workername + ":target")
+        return self.redis_connection.get(self.redis_connection.get(self.uuid + ":" + workername + ":target"))
     
     # add x amount of work to the worker which is used to calculate the payout for each block
     def addWork(self, work):
-        current_work = float(self.redis_connection.get(self.uuid + ":" + workername + ":current_work")) + work
+        current_work = int(self.redis_connection.get(self.uuid + ":" + workername + ":current_work")) + work
         self.redis_connection.mset({self.uuid + ":" + workername + ":current_work": current_work})
+        return current_work
+
+
 # "Client simply opens TCP socket and writes requests to the server in the form of JSON messages finished by the newline character \n" - slushpool
 # Therefore, this is a newline seperated protocol, so we should use line reciever
 class TCPServer(LineReceiver):
@@ -74,6 +78,8 @@ class TCPServer(LineReceiver):
     def __init__(self, factory):
         self.factory = factory
         self.authorized = False
+        # we will set it in authorize
+        self.worker = None
 
     def connectionMade(self):
         # we won't ever reach this amount of connections at a time - this is also the plain integer limit
@@ -102,6 +108,8 @@ class TCPServer(LineReceiver):
                 response.set_result(True)
                 self.authorized = True
                 self.factory.log.debug("Authorized user {}".format(params[0]))
+                if not self.worker:
+                    self.worker = Worker(self.factory.redis_connection, params[0], params[1], self.factory.uuid)
             else:
                 response.set_result(False)
                 response.set_error("Unauthorized")
@@ -114,7 +122,7 @@ class TCPServer(LineReceiver):
             # adds one to the block_num var which each thread checks for so we can broadcast new jobs
             curr_job = self.factory.job_template
             try:
-                blocktemplate = self.factory.rpc_connection.getblocktemplate
+                blocktemplate = self.factory.rpc_connection.getblocktemplate()
                 if blocktemplate["error"]:
                     raise Exception("Failed getblocktemplate rpc call! Is the bitcoin daemon running?")
                 self.factory.log.info("New block at height {}".format(blocktemplate["result"]["height"]))
@@ -179,12 +187,13 @@ class TCPServer(LineReceiver):
 
             num_zeroes = len(block_header_hash) - len(block_header_hash.lstrip('0')) # compare the length with the leading zeroes and without the leading zeroes to get the number of leading zeroes
 
-            target = redis_connection.get(self.uuid + ":target:" + params[0]) # get the target share for this worker
+            target = self.worker.getTarget # get the target share for this worker
             if num_zeroes > target:
                 if num_zeroes > self.block_target: # we found a block
                     pass
+                # possibly how it works?
+                self.worker.addWork(10 ** target)
                 #do things here
-                # also check if it hits the global block difficulty
                 pass
             #write to db
         
