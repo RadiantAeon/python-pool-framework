@@ -58,4 +58,8 @@ for config in coin_configs:
     stratumServers.append(coin_modules[config['coin']].init_server(config, global_config, redis_connection, curr_logger))
 
 while True:
-    command = str(input()) # doesn't do anything yet
+    try:
+        command = str(input()) # doesn't do anything yet
+    except KeyboardInterrupt:
+        print("exiting")
+        break

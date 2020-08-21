@@ -78,6 +78,7 @@ class TCPServer(LineReceiver):
     def __init__(self, factory):
         self.factory = factory
         self.authorized = False
+        self.delimiter = "\n"
         # we will set it in authorize
         self.worker = None
 
