@@ -60,6 +60,9 @@ for config in coin_configs:
 while True:
     try:
         command = str(input()) # doesn't do anything yet
+        if command.lower() == "q":
+            print("exiting")
+            quit
     except KeyboardInterrupt:
         print("exiting")
-        break
+        quit
