@@ -267,9 +267,18 @@ class StratumProtocol(Factory):
             config['daemon']["daemon_ip"],
             config['daemon']["daemon_port"]))
         log.debug(config["coin"] + " init complete")
+    
+    def buildProtocol(self, addr):
+        return TCPServer()
 
 
 # called by main to start the server thread
 def init_server(config, global_config, redis_connection, log):
-    reactor.listenTCP(config['port'], StratumProtocol(config, global_config, redis_connection, log))
-    reactor.run()
+    try:
+        reactor.listenTCP(config['port'], StratumProtocol(config, global_config, redis_connection, log))
+        reactor.run()
+        return reactor
+    except Exception as e:
+        log.error("Failed to start TCP server! Traceback below: ")
+        log.error(e)
+        return
