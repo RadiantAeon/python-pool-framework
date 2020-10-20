@@ -1,7 +1,7 @@
 # Python Pool Framework
 ## A successor to yiimp
 
-# WARNING - THIS CODE IS NOT PRODUCTION READY
+# WARNING - THIS CODE DOESN'T WORK BECAUSE PYTHON TWISTED SPAGHETTI DOCUMENTATION
 
 ## TLDR;
 Yiimp is no longer maintained in an opensource form and is garbage. Please help us make a new pool software that helps us, the people, achieve decentralization.
